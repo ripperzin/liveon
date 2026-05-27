@@ -82,8 +82,8 @@ export function AvatarRenderer({ state, size = 160 }: AvatarRendererProps) {
     if (state.aura.animated) {
       auraScale.value = withRepeat(
         withSequence(
-          withTiming(1.12, { duration: 1800, easing: Easing.inOut(Easing.sine) }),
-          withTiming(1.00, { duration: 1800, easing: Easing.inOut(Easing.sine) })
+          withTiming(1.12, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1.00, { duration: 1800, easing: Easing.inOut(Easing.sin) })
         ),
         -1,
         false
@@ -114,8 +114,8 @@ export function AvatarRenderer({ state, size = 160 }: AvatarRendererProps) {
 
     bodyFloat.value = withRepeat(
       withSequence(
-        withTiming(-floatAmount, { duration: floatDuration, easing: Easing.inOut(Easing.sine) }),
-        withTiming( floatAmount, { duration: floatDuration, easing: Easing.inOut(Easing.sine) })
+        withTiming(-floatAmount, { duration: floatDuration, easing: Easing.inOut(Easing.sin) }),
+        withTiming( floatAmount, { duration: floatDuration, easing: Easing.inOut(Easing.sin) })
       ),
       -1,
       false
@@ -124,8 +124,8 @@ export function AvatarRenderer({ state, size = 160 }: AvatarRendererProps) {
     // Breathing scale sutil
     bodyScale.value = withRepeat(
       withSequence(
-        withTiming(1.025, { duration: floatDuration * 0.8, easing: Easing.inOut(Easing.sine) }),
-        withTiming(0.975, { duration: floatDuration * 0.8, easing: Easing.inOut(Easing.sine) })
+        withTiming(1.025, { duration: floatDuration * 0.8, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.975, { duration: floatDuration * 0.8, easing: Easing.inOut(Easing.sin) })
       ),
       -1,
       false
