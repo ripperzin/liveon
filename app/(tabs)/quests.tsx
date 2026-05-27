@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,7 +10,7 @@ import { useFocusEffect } from 'expo-router';
 
 export default function QuestsScreen() {
   const { t } = useTranslation();
-  const { quests, loadAllData, userHabits, todayLogs, userAttributes, streaks } = useGameStore();
+  const { quests, loadAllData, userHabits, todayLogs, userAttributes, streaks, claimedQuests, claimQuest } = useGameStore();
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'special'>('daily');
 
   useFocusEffect(
@@ -164,93 +165,102 @@ export default function QuestsScreen() {
             const color = getTypeColor(quest.type);
             const emoji = getTypeEmoji(quest.type);
             const progress = quest.progress || 0;
+            const isClaimed = claimedQuests?.includes(quest.id) || false;
+            const canClaim = progress >= 1 && !isClaimed;
 
             return (
               <Animated.View
                 key={quest.id}
                 entering={FadeInRight.delay(200 + index * 100).duration(500)}
               >
-                <Pressable
+                <View
                   style={{
-                    backgroundColor: Colors.surface,
+                    backgroundColor: isClaimed ? Colors.surfaceDark : Colors.surface,
                     borderRadius: 16,
                     padding: 18,
                     marginBottom: 12,
                     borderWidth: 1,
-                    borderColor: Colors.surfaceLight,
-                    borderLeftWidth: 4,
-                    borderLeftColor: color,
+                    borderColor: canClaim ? color : Colors.surfaceLight,
+                    opacity: isClaimed ? 0.6 : 1,
                   }}
                 >
-                  {/* Top Row */}
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
                     <View
                       style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 14,
-                        backgroundColor: color + '20',
-                        justifyContent: 'center',
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: isClaimed ? Colors.surfaceLight : color + '20',
                         alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 14,
                       }}
                     >
-                      <Text style={{ fontSize: 24 }}>{emoji}</Text>
+                      <Text style={{ fontSize: 22 }}>{isClaimed ? '✅' : emoji}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: Colors.textPrimary, fontSize: 16, fontWeight: '700' }}>
+                      <Text style={{ color: Colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 4 }}>
                         {quest.title}
                       </Text>
-                      <Text style={{ color: Colors.textMuted, fontSize: 13, marginTop: 4, lineHeight: 18 }}>
+                      <Text style={{ color: Colors.textMuted, fontSize: 13, lineHeight: 18 }}>
                         {quest.description}
                       </Text>
                     </View>
                   </View>
 
-                  {/* Progress Bar */}
-                  <View style={{ marginTop: 14 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Text style={{ color: Colors.textMuted, fontSize: 12, fontWeight: '600' }}>
-                        {t('quests.progress')}
-                      </Text>
-                      <Text style={{ color, fontSize: 12, fontWeight: '700' }}>
-                        {Math.round(progress * 100)}%
-                      </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={{ color: Colors.secondary, fontSize: 14, fontWeight: '700' }}>+{quest.rewards.xp}</Text>
+                        <Text style={{ fontSize: 12 }}>XP</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={{ color: Colors.accentGold, fontSize: 14, fontWeight: '700' }}>+{quest.rewards.coins}</Text>
+                        <Text style={{ fontSize: 12 }}>🪙</Text>
+                      </View>
                     </View>
-                    <View
-                      style={{
-                        height: 6,
-                        backgroundColor: Colors.surfaceLight,
-                        borderRadius: 3,
-                        overflow: 'hidden',
+                    
+                    {!isClaimed && !canClaim && (
+                      <Text style={{ color: color, fontSize: 13, fontWeight: '700' }}>
+                        {Math.floor(progress * 100)}%
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Progress Bar or Claim Button */}
+                  {isClaimed ? (
+                    <View style={{ backgroundColor: Colors.surfaceLight, padding: 10, borderRadius: 8, alignItems: 'center' }}>
+                      <Text style={{ color: Colors.textMuted, fontSize: 13, fontWeight: '700' }}>Resgatado</Text>
+                    </View>
+                  ) : canClaim ? (
+                    <Pressable
+                      onPress={async () => {
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        await claimQuest(quest.id, quest.rewards.xp, quest.rewards.coins);
                       }}
+                      style={({ pressed }) => ({
+                        backgroundColor: color,
+                        padding: 12,
+                        borderRadius: 8,
+                        alignItems: 'center',
+                        opacity: pressed ? 0.8 : 1,
+                      })}
                     >
-                      <View
+                      <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '700' }}>Resgatar Recompensa!</Text>
+                    </Pressable>
+                  ) : (
+                    <View style={{ height: 6, backgroundColor: Colors.surfaceLight, borderRadius: 3, overflow: 'hidden' }}>
+                      <Animated.View
                         style={{
                           height: '100%',
-                          width: `${progress * 100}%`,
                           backgroundColor: color,
+                          width: `${progress * 100}%`,
                           borderRadius: 3,
                         }}
                       />
                     </View>
-                  </View>
-
-                  {/* Rewards */}
-                  <View style={{ flexDirection: 'row', marginTop: 12, gap: 16 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Text style={{ fontSize: 14 }}>✨</Text>
-                      <Text style={{ color: Colors.secondary, fontSize: 14, fontWeight: '700' }}>
-                        +{quest.rewards.xp} XP
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Text style={{ fontSize: 14 }}>🪙</Text>
-                      <Text style={{ color: Colors.accentGold, fontSize: 14, fontWeight: '700' }}>
-                        +{quest.rewards.coins}
-                      </Text>
-                    </View>
-                  </View>
-                </Pressable>
+                  )}
+                </View>
               </Animated.View>
             );
           })}

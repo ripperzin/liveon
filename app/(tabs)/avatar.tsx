@@ -1,4 +1,5 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,7 +12,9 @@ import { useFocusEffect } from 'expo-router';
 export default function AvatarScreen() {
   const { t } = useTranslation();
   const { profile } = useAuthStore();
-  const { userAttributes, achievements, loadAllData } = useGameStore();
+  const { userAttributes, achievements, loadAllData, shopItems, userInventory, buyItem, equipItem } = useGameStore();
+
+  const equippedTitle = userInventory.find(i => i.is_equipped && i.item?.type === 'title')?.item;
 
   useFocusEffect(
     useCallback(() => {
@@ -98,9 +101,15 @@ export default function AvatarScreen() {
           <Text style={{ fontSize: 24, color: Colors.textPrimary, fontWeight: '800', marginTop: 16 }}>
             {profile?.display_name || 'Adventurer'}
           </Text>
-          <Text style={{ fontSize: 14, color: Colors.primary, fontWeight: '600', marginTop: 4 }}>
-            {getTitle(profile?.level || 1)}
-          </Text>
+          {equippedTitle ? (
+            <Text style={{ fontSize: 14, color: Colors.accentGold, fontWeight: '700', marginTop: 4, textTransform: 'uppercase' }}>
+              {equippedTitle.icon} {equippedTitle.name}
+            </Text>
+          ) : (
+            <Text style={{ fontSize: 14, color: Colors.primary, fontWeight: '600', marginTop: 4 }}>
+              {getTitle(profile?.level || 1)}
+            </Text>
+          )}
 
           {/* Level & XP */}
           <View style={{ width: '100%', marginTop: 20 }}>
@@ -240,6 +249,109 @@ export default function AvatarScreen() {
             ))}
           </ScrollView>
         </Animated.View>
+
+        {/* Cosmetics Shop */}
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(600)}
+          style={{ marginHorizontal: 24, marginTop: 40, marginBottom: 40 }}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ fontSize: 20, color: Colors.textPrimary, fontWeight: '800' }}>
+              Loja de Cosméticos
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}>
+              <Text style={{ color: Colors.accentGold, fontSize: 16, fontWeight: '800', marginRight: 4 }}>
+                {profile?.coins || 0}
+              </Text>
+              <Text style={{ fontSize: 16 }}>🪙</Text>
+            </View>
+          </View>
+
+          <View style={{ gap: 12 }}>
+            {shopItems.map((item, index) => {
+              const inventoryRecord = userInventory.find(inv => inv.item_id === item.id);
+              const isOwned = !!inventoryRecord;
+              const isEquipped = inventoryRecord?.is_equipped;
+
+              return (
+                <Animated.View key={item.id} entering={FadeInRight.delay(200 + index * 100).duration(400)}>
+                  <View style={{
+                    flexDirection: 'row',
+                    backgroundColor: Colors.surface,
+                    padding: 16,
+                    borderRadius: 16,
+                    borderWidth: isEquipped ? 1 : 0,
+                    borderColor: Colors.primary,
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <View style={{ width: 40, height: 40, backgroundColor: Colors.surfaceDark, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                        <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: Colors.textPrimary, fontSize: 15, fontWeight: '700' }}>
+                          {item.name}
+                        </Text>
+                        <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 2, marginRight: 8 }} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {isOwned ? (
+                      item.type === 'title' || item.type === 'border' ? (
+                        <Pressable
+                          onPress={async () => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            if (!isEquipped) await equipItem(item.id, item.type);
+                          }}
+                          style={{
+                            backgroundColor: isEquipped ? Colors.primary + '20' : Colors.surfaceLight,
+                            paddingHorizontal: 16,
+                            paddingVertical: 8,
+                            borderRadius: 12,
+                          }}
+                        >
+                          <Text style={{ color: isEquipped ? Colors.primary : Colors.textMuted, fontSize: 13, fontWeight: '700' }}>
+                            {isEquipped ? 'Equipado' : 'Equipar'}
+                          </Text>
+                        </Pressable>
+                      ) : (
+                        <View style={{ backgroundColor: Colors.surfaceLight, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}>
+                          <Text style={{ color: Colors.textMuted, fontSize: 13, fontWeight: '700' }}>Comprado</Text>
+                        </View>
+                      )
+                    ) : (
+                      <Pressable
+                        onPress={async () => {
+                          if ((profile?.coins || 0) >= item.price) {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                            await buyItem(item.id, item.price);
+                          } else {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                          }
+                        }}
+                        style={({ pressed }) => ({
+                          backgroundColor: (profile?.coins || 0) >= item.price ? Colors.accentGold : Colors.surfaceLight,
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                          borderRadius: 12,
+                          opacity: pressed ? 0.8 : 1,
+                        })}
+                      >
+                        <Text style={{ color: (profile?.coins || 0) >= item.price ? '#000' : Colors.textMuted, fontSize: 13, fontWeight: '800' }}>
+                          {item.price} 🪙
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </Animated.View>
+              );
+            })}
+          </View>
+        </Animated.View>
+
       </ScrollView>
     </SafeAreaView>
   );

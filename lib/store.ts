@@ -109,6 +109,30 @@ export interface Achievement {
   unlocked_at?: string;
 }
 
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  type: 'title' | 'border' | 'aura' | 'consumable';
+  price: number;
+  icon: string;
+  is_active: boolean;
+}
+
+export interface UserInventory {
+  id: string;
+  user_id: string;
+  item_id: string;
+  is_equipped: boolean;
+  quantity: number;
+  item?: ShopItem;
+}
+
+export interface ClaimedQuest {
+  quest_id: string;
+  claimed_date: string;
+}
+
 // ============================================
 // AUTH STORE
 // ============================================
@@ -185,8 +209,10 @@ interface GameState {
   streaks: UserStreak[];
   quests: Quest[];
   achievements: Achievement[];
-
-  // Actions
+  shopItems: ShopItem[];
+  userInventory: UserInventory[];
+  claimedQuests: string[];
+  
   fetchHabits: () => Promise<void>;
   fetchUserHabits: () => Promise<void>;
   fetchTodayLogs: () => Promise<void>;
@@ -195,13 +221,20 @@ interface GameState {
   fetchStreaks: () => Promise<void>;
   fetchQuests: () => Promise<void>;
   fetchAchievements: () => Promise<void>;
-  completeHabit: (habitId: string, value: Record<string, any>) => Promise<{
+  fetchShopItems: () => Promise<void>;
+  fetchUserInventory: () => Promise<void>;
+  fetchClaimedQuests: () => Promise<void>;
+  
+  completeHabit: (habitId: string, value: any) => Promise<{
     xpEarned: number;
     coinsEarned: number;
     leveledUp: boolean;
     newLevel?: number;
   } | null>;
   addUserHabit: (habitId: string) => Promise<void>;
+  claimQuest: (questId: string, xpReward: number, coinsReward: number) => Promise<void>;
+  buyItem: (itemId: string, price: number) => Promise<boolean>;
+  equipItem: (itemId: string, type: 'title' | 'border' | 'aura') => Promise<void>;
   loadAllData: () => Promise<void>;
 }
 
@@ -367,6 +400,125 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  fetchShopItems: async () => {
+    const { data } = await supabase.from('shop_items').select('*').eq('is_active', true);
+    if (data) set({ shopItems: data as ShopItem[] });
+  },
+
+  fetchUserInventory: async () => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile) return;
+    const { data } = await supabase
+      .from('user_inventory')
+      .select('*, item:shop_items(*)')
+      .eq('user_id', profile.id);
+    if (data) set({ userInventory: data as UserInventory[] });
+  },
+
+  fetchClaimedQuests: async () => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile) return;
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase
+      .from('claimed_quests')
+      .select('quest_id')
+      .eq('user_id', profile.id)
+      .eq('claimed_date', today);
+    if (data) {
+      set({ claimedQuests: data.map(d => d.quest_id) });
+    }
+  },
+
+  claimQuest: async (questId, xpReward, coinsReward) => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile) return;
+    const today = new Date().toISOString().split('T')[0];
+
+    // Optimistic update
+    set(state => ({ claimedQuests: [...state.claimedQuests, questId] }));
+
+    const { error } = await supabase.from('claimed_quests').insert({
+      user_id: profile.id,
+      quest_id: questId,
+      claimed_date: today
+    });
+
+    if (!error) {
+      // Grant rewards
+      await supabase.rpc('process_habit_completion', {
+        p_user_id: profile.id,
+        p_habit_id: null,
+        p_base_xp: xpReward,
+        p_coins: coinsReward
+      });
+      // Fetch latest profile to update UI
+      await useAuthStore.getState().fetchProfile();
+    }
+  },
+
+  buyItem: async (itemId, price) => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile || profile.coins < price) return false;
+
+    // Optimistic coin deduction (Note: should ideally be handled by a DB function to prevent race conditions, but fine for MVP)
+    const newCoins = profile.coins - price;
+    useAuthStore.setState({ profile: { ...profile, coins: newCoins } });
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ coins: newCoins })
+      .eq('id', profile.id);
+
+    if (!updateError) {
+      const { error: insertError } = await supabase.from('user_inventory').insert({
+        user_id: profile.id,
+        item_id: itemId,
+        is_equipped: false
+      });
+      if (!insertError) {
+        await get().fetchUserInventory();
+        return true;
+      }
+    }
+    // Revert on failure
+    await useAuthStore.getState().fetchProfile();
+    return false;
+  },
+
+  equipItem: async (itemId, type) => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile) return;
+
+    // Unequip all items of the same type first
+    const itemsOfType = get().userInventory.filter(inv => inv.item?.type === type);
+    
+    // Opt update
+    set(state => ({
+      userInventory: state.userInventory.map(inv => {
+        if (inv.item?.type === type) return { ...inv, is_equipped: false };
+        return inv;
+      })
+    }));
+
+    // Perform unequip in DB (batch update not natively supported via standard insert in simple setup, so doing sequentially)
+    for (const inv of itemsOfType) {
+      if (inv.is_equipped) {
+        await supabase.from('user_inventory').update({ is_equipped: false }).eq('id', inv.id);
+      }
+    }
+
+    // Equip the new item
+    const { error } = await supabase
+      .from('user_inventory')
+      .update({ is_equipped: true })
+      .eq('user_id', profile.id)
+      .eq('item_id', itemId);
+
+    if (!error) {
+      await get().fetchUserInventory();
+    }
+  },
+
   loadAllData: async () => {
     await Promise.all([
       get().fetchHabits(),
@@ -377,6 +529,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().fetchStreaks(),
       get().fetchQuests(),
       get().fetchAchievements(),
+      get().fetchShopItems(),
+      get().fetchUserInventory(),
+      get().fetchClaimedQuests(),
     ]);
   },
 }));
