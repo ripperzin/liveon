@@ -161,9 +161,8 @@ export function AvatarRenderer({ state, size = 160 }: AvatarRendererProps) {
     opacity: auraOpacity.value,
   }));
 
-  // ── Eye scale (blink) ─────────────────────────────────────────────────────
-  const eyeScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleY: eyeBlink.value }],
+  const eyeProps = useAnimatedProps(() => ({
+    scaleY: eyeBlink.value,
   }));
 
   const bodyColor   = STATE_BODY_COLOR[state.visualState];
@@ -229,7 +228,7 @@ export function AvatarRenderer({ state, size = 160 }: AvatarRendererProps) {
           cy={cy - headR * 0.1}
           headR={headR}
           visualState={state.visualState}
-          eyeScaleStyle={eyeScaleStyle}
+          eyeProps={eyeProps}
           outlineColor={outlineColor}
         />
 
@@ -256,11 +255,11 @@ type FaceProps = {
   cy: number;
   headR: number;
   visualState: AvatarState['visualState'];
-  eyeScaleStyle: object;
+  eyeProps: any;
   outlineColor: string;
 };
 
-function AvatarFace({ cx, cy, headR, visualState, eyeScaleStyle, outlineColor }: FaceProps) {
+function AvatarFace({ cx, cy, headR, visualState, eyeProps, outlineColor }: FaceProps) {
   const eyeY    = cy - headR * 0.15;
   const eyeOffX = headR * 0.35;
   const eyeRx   = headR * 0.14;
@@ -280,10 +279,10 @@ function AvatarFace({ cx, cy, headR, visualState, eyeScaleStyle, outlineColor }:
   return (
     <G>
       {/* Olhos com blink */}
-      <AnimatedG style={eyeScaleStyle} origin={`${cx - eyeOffX}, ${eyeY}`}>
+      <AnimatedG animatedProps={eyeProps} originX={cx - eyeOffX} originY={eyeY}>
         <Ellipse cx={cx - eyeOffX} cy={eyeY} rx={eyeRx} ry={eyeRy} fill={eyeColor} />
       </AnimatedG>
-      <AnimatedG style={eyeScaleStyle} origin={`${cx + eyeOffX}, ${eyeY}`}>
+      <AnimatedG animatedProps={eyeProps} originX={cx + eyeOffX} originY={eyeY}>
         <Ellipse cx={cx + eyeOffX} cy={eyeY} rx={eyeRx} ry={eyeRy} fill={eyeColor} />
       </AnimatedG>
 
