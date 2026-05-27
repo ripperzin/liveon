@@ -306,58 +306,85 @@ export default function HomeScreen() {
           <Text style={{ fontSize: 18, color: Colors.textPrimary, fontWeight: '700', marginBottom: 12 }}>
             {t('home.today_quests')}
           </Text>
-          {(quests.length > 0 ? quests.slice(0, 3) : [
-            { id: '1', title: 'Dia Completo', description: 'Complete todos os hábitos', rewards: { xp: 50, coins: 20 }, type: 'daily' },
-            { id: '2', title: 'Hidratação Total', description: 'Beba 8 copos de água', rewards: { xp: 25, coins: 10 }, type: 'daily' },
-          ]).map((quest, index) => (
-            <Animated.View
-              key={quest.id}
-              entering={FadeInRight.delay(600 + index * 100).duration(400)}
-            >
-              <Pressable
-                style={{
-                  backgroundColor: Colors.surface,
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 8,
-                  borderWidth: 1,
-                  borderColor: Colors.surfaceLight,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 12,
-                }}
+          {(quests.length > 0 ? quests.filter(q => q.type === 'daily').slice(0, 3) : []).map((quest, index) => {
+            const progress = quest.progress || 0;
+            const isClaimed = useGameStore.getState().claimedQuests?.includes(quest.id) || false;
+            const canClaim = progress >= 1 && !isClaimed;
+
+            return (
+              <Animated.View
+                key={quest.id}
+                entering={FadeInRight.delay(600 + index * 100).duration(400)}
               >
                 <View
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    backgroundColor: Colors.primary + '20',
-                    justifyContent: 'center',
-                    alignItems: 'center',
+                    backgroundColor: isClaimed ? Colors.surfaceDark : Colors.surface,
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 10,
+                    borderWidth: 1,
+                    borderColor: canClaim ? Colors.primary : Colors.surfaceLight,
+                    opacity: isClaimed ? 0.6 : 1,
                   }}
                 >
-                  <Text style={{ fontSize: 22 }}>⚔️</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: isClaimed ? Colors.surfaceLight : Colors.primary + '20',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text style={{ fontSize: 22 }}>{isClaimed ? '✅' : '⚔️'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: Colors.textPrimary, fontSize: 15, fontWeight: '700' }}>
+                        {quest.title}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        <Text style={{ color: Colors.secondary, fontSize: 12, fontWeight: '700' }}>
+                          +{quest.rewards.xp} XP
+                        </Text>
+                        <Text style={{ color: Colors.accentGold, fontSize: 11, fontWeight: '600' }}>
+                          +{quest.rewards.coins} 🪙
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    {/* Status/Claim */}
+                    <View style={{ alignItems: 'flex-end' }}>
+                      {isClaimed ? (
+                        <Text style={{ color: Colors.textMuted, fontSize: 12, fontWeight: '700' }}>Resgatado</Text>
+                      ) : canClaim ? (
+                        <Pressable
+                          onPress={async () => {
+                            const { claimQuest } = useGameStore.getState();
+                            // Note: we can't easily import Haptics here since it's missing, but we can rely on standard click
+                            await claimQuest(quest.id, quest.rewards.xp, quest.rewards.coins);
+                          }}
+                          style={{
+                            backgroundColor: Colors.primary,
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 8,
+                          }}
+                        >
+                          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>Resgatar</Text>
+                        </Pressable>
+                      ) : (
+                        <View style={{ width: 40, height: 6, backgroundColor: Colors.surfaceLight, borderRadius: 3, overflow: 'hidden' }}>
+                          <View style={{ height: '100%', width: `${progress * 100}%`, backgroundColor: Colors.primary, borderRadius: 3 }} />
+                        </View>
+                      )}
+                    </View>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: Colors.textPrimary, fontSize: 15, fontWeight: '700' }}>
-                    {quest.title}
-                  </Text>
-                  <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 2 }}>
-                    {quest.description}
-                  </Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ color: Colors.secondary, fontSize: 13, fontWeight: '700' }}>
-                    +{quest.rewards.xp} XP
-                  </Text>
-                  <Text style={{ color: Colors.accentGold, fontSize: 12, fontWeight: '600' }}>
-                    +{quest.rewards.coins} 🪙
-                  </Text>
-                </View>
-              </Pressable>
-            </Animated.View>
-          ))}
+              </Animated.View>
+            );
+          })}
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

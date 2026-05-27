@@ -54,6 +54,7 @@ function HabitCard({ userHabit, todayLog, streak, onCheckIn, index }: HabitCardP
 
   const streakMult = getStreakMultiplier(streak);
   const estimatedXp = Math.floor(habit.base_xp * streakMult);
+  const estimatedCoins = Math.floor(estimatedXp * 0.5);
 
   return (
     <Animated.View
@@ -142,16 +143,19 @@ function HabitCard({ userHabit, todayLog, streak, onCheckIn, index }: HabitCardP
               </View>
             </Animated.View>
           ) : (
-            <>
+            <View style={{ alignItems: 'flex-end', gap: 2 }}>
               <Text style={{ color: Colors.secondary, fontSize: 13, fontWeight: '700' }}>
                 +{estimatedXp} XP
               </Text>
+              <Text style={{ color: Colors.accentGold, fontSize: 12, fontWeight: '700' }}>
+                +{estimatedCoins} 🪙
+              </Text>
               {streakMult > 1 && (
-                <Text style={{ color: Colors.accentGold, fontSize: 11, fontWeight: '600' }}>
+                <Text style={{ color: Colors.textMuted, fontSize: 10, fontWeight: '600' }}>
                   {streakMult.toFixed(2)}x bonus
                 </Text>
               )}
-            </>
+            </View>
           )}
         </View>
       </Pressable>
