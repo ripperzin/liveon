@@ -19,7 +19,7 @@ const queryClient = new QueryClient({
 });
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { session, setSession, setLoading, isLoading, fetchProfile } = useAuthStore();
+  const { session, setSession, setLoading, isLoading, fetchProfile, isOnboarded } = useAuthStore();
   const [appReady, setAppReady] = useState(false);
   const segments = useSegments();
   const router = useRouter();
@@ -57,15 +57,21 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (!appReady) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inOnboarding = segments[0] === 'onboarding';
 
     if (!session && !inAuthGroup) {
       // Not logged in, redirect to auth
       router.replace('/(auth)/welcome');
-    } else if (session && inAuthGroup) {
-      // Logged in, redirect to main app
-      router.replace('/(tabs)');
+    } else if (session) {
+      if (!isOnboarded && !inOnboarding) {
+        // Logged in but not onboarded
+        router.replace('/onboarding');
+      } else if (isOnboarded && (inAuthGroup || inOnboarding)) {
+        // Logged in and onboarded, redirect to main app
+        router.replace('/(tabs)');
+      }
     }
-  }, [session, segments, appReady]);
+  }, [session, segments, appReady, isOnboarded]);
 
   if (!appReady || isLoading) {
     return (

@@ -161,6 +161,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (data && !error) {
       set({ profile: data as Profile });
+      
+      // Check onboarding status
+      const { count } = await supabase
+        .from('user_habits')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', data.id);
+        
+      set({ isOnboarded: count ? count > 0 : false });
     }
   },
 }));
