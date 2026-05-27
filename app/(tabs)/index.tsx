@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { Colors, getGreeting, getStreakColor, getAttributeColor } from '@/constants/Colors';
-import { useAuthStore, useGameStore } from '@/lib/store';
+import { HomeAvatar } from '@/components/avatar';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -26,14 +26,6 @@ export default function HomeScreen() {
   const completedToday = todayLogs.filter((l) => l.completed).length;
   const totalHabits = userHabits.length || 4; // Default to 4 for display
   const progressPercent = totalHabits > 0 ? (completedToday / totalHabits) * 100 : 0;
-
-  // Find max streak
-  const maxStreak = streaks.reduce((max, s) => Math.max(max, s.current_streak), 0);
-  const globalStreak = profile?.current_streak_days || maxStreak || 0;
-
-  const xpPercent = profile
-    ? (profile.current_level_xp / profile.xp_to_next_level) * 100
-    : 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.surfaceDark }}>
@@ -57,109 +49,15 @@ export default function HomeScreen() {
           </Text>
         </Animated.View>
 
-        {/* Character Card */}
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600)}
-          style={{
-            marginHorizontal: 24,
-            marginTop: 16,
-            backgroundColor: Colors.surface,
-            borderRadius: 20,
-            padding: 24,
-            borderWidth: 1,
-            borderColor: Colors.surfaceLight,
-            shadowColor: Colors.primary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 12,
-            elevation: 4,
-          }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            {/* Avatar Area */}
-            <View style={{ alignItems: 'center' }}>
-              <View
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  backgroundColor: Colors.primary + '30',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  borderWidth: 3,
-                  borderColor: Colors.primary,
-                }}
-              >
-                <Text style={{ fontSize: 40 }}>🧙</Text>
-              </View>
-              <View
-                style={{
-                  backgroundColor: Colors.primary,
-                  paddingHorizontal: 12,
-                  paddingVertical: 4,
-                  borderRadius: 12,
-                  marginTop: -10,
-                }}
-              >
-                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '800' }}>
-                  {t('home.level')} {profile?.level || 1}
-                </Text>
-              </View>
-            </View>
-
-            {/* Stats */}
-            <View style={{ flex: 1, marginLeft: 20 }}>
-              {/* XP Bar */}
-              <View style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <Text style={{ color: Colors.textSecondary, fontSize: 12, fontWeight: '600' }}>XP</Text>
-                  <Text style={{ color: Colors.secondary, fontSize: 12, fontWeight: '700' }}>
-                    {profile?.current_level_xp || 0} / {profile?.xp_to_next_level || 100}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    height: 8,
-                    backgroundColor: Colors.surfaceLight,
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <View
-                    style={{
-                      height: '100%',
-                      width: `${Math.min(xpPercent, 100)}%`,
-                      backgroundColor: Colors.secondary,
-                      borderRadius: 4,
-                    }}
-                  />
-                </View>
-              </View>
-
-              {/* Coins & Streak */}
-              <View style={{ flexDirection: 'row', gap: 16 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={{ fontSize: 16 }}>🪙</Text>
-                  <Text style={{ color: Colors.accentGold, fontSize: 16, fontWeight: '700' }}>
-                    {profile?.coins || 0}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={{ fontSize: 16 }}>🔥</Text>
-                  <Text
-                    style={{
-                      color: getStreakColor(globalStreak),
-                      fontSize: 16,
-                      fontWeight: '700',
-                    }}
-                  >
-                    {globalStreak} {t('home.days')}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
+        {/* Live Avatar */}
+        {profile?.id && (
+          <Animated.View
+            entering={FadeInDown.delay(200).duration(600)}
+            style={{ marginHorizontal: 24, marginTop: 16, alignItems: 'center' }}
+          >
+            <HomeAvatar profileId={profile.id} size={220} />
+          </Animated.View>
+        )}
 
         {/* Daily Progress */}
         <Animated.View
