@@ -9,7 +9,7 @@ import { useFocusEffect } from 'expo-router';
 
 export default function QuestsScreen() {
   const { t } = useTranslation();
-  const { quests, loadAllData, userHabits, todayLogs, userAttributes } = useGameStore();
+  const { quests, loadAllData, userHabits, todayLogs, userAttributes, streaks } = useGameStore();
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'special'>('daily');
 
   useFocusEffect(
@@ -22,66 +22,70 @@ export default function QuestsScreen() {
   const totalHabits = userHabits.length > 0 ? userHabits.length : 1; // avoid division by zero
   const completedHabits = todayLogs.filter((l) => l.completed).length;
   const dailyProgress = Math.min(completedHabits / totalHabits, 1);
+  const dailyXp = todayLogs.reduce((acc, log) => acc + (log.xp_earned || 0), 0);
+  const highestStreak = streaks.length > 0 ? Math.max(...streaks.map(s => s.current_streak)) : 0;
+  
+  // Find if they protected their best streak
+  const bestStreakHabitId = streaks.length > 0 
+    ? streaks.reduce((prev, current) => (prev.current_streak > current.current_streak) ? prev : current).habit_id 
+    : null;
+  const protectedBestStreak = bestStreakHabitId 
+    ? todayLogs.some(l => l.completed && l.habit_id === bestStreakHabitId)
+    : false;
 
-  // Map DB quests or use fallback if none exist
-  const baseQuests = quests.length > 0
-    ? quests.filter((q) => q.type === activeTab)
-    : [
-        {
-          id: '1',
-          title: activeTab === 'daily' ? 'Dia Completo' : activeTab === 'weekly' ? 'Semana Ativa' : 'Desafio Especial',
-          description: activeTab === 'daily'
-            ? `Complete todos os ${userHabits.length || 'seus'} hábitos de hoje`
-            : activeTab === 'weekly'
-            ? 'Complete 20 hábitos esta semana'
-            : 'Mantenha um streak de 7 dias',
-          type: activeTab,
-          requirements: {},
-          rewards: { xp: activeTab === 'daily' ? 50 : activeTab === 'weekly' ? 200 : 500, coins: activeTab === 'daily' ? 20 : activeTab === 'weekly' ? 80 : 200 },
-        },
-        {
-          id: '2',
-          title: activeTab === 'daily' ? 'Apenas o Começo' : activeTab === 'weekly' ? 'Foco de Mestre' : 'Maratonista',
-          description: activeTab === 'daily'
-            ? 'Complete seu primeiro hábito do dia'
-            : activeTab === 'weekly'
-            ? 'Acumule 500 XP em uma semana'
-            : 'Exercite-se por 30 dias',
-          type: activeTab,
-          requirements: {},
-          rewards: { xp: activeTab === 'daily' ? 25 : activeTab === 'weekly' ? 150 : 1000, coins: activeTab === 'daily' ? 10 : activeTab === 'weekly' ? 50 : 500 },
-        },
-        {
-          id: '3',
-          title: activeTab === 'daily' ? 'Atributo em Alta' : activeTab === 'weekly' ? 'Consistência Pura' : 'Lenda Viva',
-          description: activeTab === 'daily'
-            ? 'Ganhe XP em qualquer atributo hoje'
-            : activeTab === 'weekly'
-            ? 'Mantenha todos os hábitos por 5 dias na semana'
-            : 'Alcance o nível 50',
-          type: activeTab,
-          requirements: {},
-          rewards: { xp: activeTab === 'daily' ? 30 : activeTab === 'weekly' ? 100 : 5000, coins: activeTab === 'daily' ? 15 : activeTab === 'weekly' ? 40 : 2000 },
-        },
-      ];
-
-  // Inject dynamic progress and descriptions
-  const displayQuests = baseQuests.map(q => {
-    let progress = 0;
-    let desc = q.description;
-
-    if (q.title === 'Dia Completo') {
-      progress = dailyProgress;
-      desc = `Complete todos os ${userHabits.length || 'seus'} hábitos de hoje`;
-    } else if (q.title === 'Apenas o Começo' || q.title === 'Corpo Ativo' || q.title === 'Hidratação Total') {
-      // Simulate partial completion for other seeded daily quests
-      progress = completedHabits >= 1 ? 1 : 0;
-    } else if (q.type === 'weekly') {
-      progress = 0.3;
+  // New Meta-Objective Quests
+  const metaQuests = [
+    {
+      id: 'daily-1',
+      title: 'Dia Perfeito',
+      description: `Complete todos os ${userHabits.length || 'seus'} hábitos de hoje`,
+      type: 'daily',
+      progress: dailyProgress,
+      rewards: { xp: 50, coins: 20 },
+    },
+    {
+      id: 'daily-2',
+      title: 'Primeiro Passo',
+      description: 'Complete pelo menos 1 hábito do dia',
+      type: 'daily',
+      progress: completedHabits >= 1 ? 1 : 0,
+      rewards: { xp: 15, coins: 5 },
+    },
+    {
+      id: 'daily-3',
+      title: 'Guardião da Chama',
+      description: 'Complete o hábito com o seu maior Streak atual para não perdê-lo',
+      type: 'daily',
+      progress: protectedBestStreak ? 1 : 0,
+      rewards: { xp: 30, coins: 15 },
+    },
+    {
+      id: 'weekly-1',
+      title: 'Semana Consistente',
+      description: 'Alcance um streak de 5 dias em qualquer hábito',
+      type: 'weekly',
+      progress: Math.min(highestStreak / 5, 1),
+      rewards: { xp: 100, coins: 50 },
+    },
+    {
+      id: 'weekly-2',
+      title: 'Caçador de Recompensas',
+      description: 'Acumule 300 XP esta semana',
+      type: 'weekly',
+      progress: 0.3, // Simulated for MVP
+      rewards: { xp: 150, coins: 70 },
+    },
+    {
+      id: 'special-1',
+      title: 'Lenda Viva',
+      description: 'Alcance o nível 10',
+      type: 'special',
+      progress: 0.1, // Simulated
+      rewards: { xp: 1000, coins: 500 },
     }
+  ];
 
-    return { ...q, progress, description: desc };
-  });
+  const displayQuests = metaQuests.filter(q => q.type === activeTab);
 
   const getTypeColor = (type: string) => {
     switch (type) {
