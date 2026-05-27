@@ -12,6 +12,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors, getStreakColor, getStreakMultiplier } from '@/constants/Colors';
 import { useAuthStore, useGameStore, type UserHabit, type HabitLog } from '@/lib/store';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 
 interface HabitCardProps {
   userHabit: UserHabit;
@@ -102,7 +104,9 @@ function HabitCard({ userHabit, todayLog, streak, onCheckIn, index }: HabitCardP
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
             {streak > 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                <Text style={{ fontSize: 12 }}>🔥</Text>
+                <Text style={{ fontSize: streak >= 7 ? 14 : 12 }}>
+                  {streak >= 7 ? '⚡' : streak >= 3 ? '🚀' : '🔥'}
+                </Text>
                 <Text
                   style={{
                     color: getStreakColor(streak),
@@ -110,7 +114,7 @@ function HabitCard({ userHabit, todayLog, streak, onCheckIn, index }: HabitCardP
                     fontWeight: '700',
                   }}
                 >
-                  {streak}
+                  {streak} {streak >= 7 ? 'MAX' : ''}
                 </Text>
               </View>
             )}
@@ -157,6 +161,7 @@ function HabitCard({ userHabit, todayLog, streak, onCheckIn, index }: HabitCardP
 
 export default function HabitsScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { profile } = useAuthStore();
   const { habits, userHabits, todayLogs, streaks, completeHabit, fetchTodayLogs, loadAllData } = useGameStore();
   const [xpFeedback, setXpFeedback] = useState<{ xp: number; visible: boolean }>({ xp: 0, visible: false });
@@ -178,16 +183,17 @@ export default function HabitsScreen() {
       }));
 
   const handleCheckIn = async (habitId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
     const result = await completeHabit(habitId, { completed: true });
     if (result) {
       setXpFeedback({ xp: result.xpEarned, visible: true });
       setTimeout(() => setXpFeedback((prev) => ({ ...prev, visible: false })), 2000);
 
       if (result.leveledUp) {
-        Alert.alert(
-          t('feedback.level_up') + ' 🎉',
-          t('feedback.level_reached', { level: result.newLevel }),
-        );
+        setTimeout(() => {
+          router.push(`/levelup-modal?level=${result.newLevel}`);
+        }, 500); // slight delay to let XP toast show
       }
     }
   };
@@ -200,7 +206,7 @@ export default function HabitsScreen() {
       {/* XP Feedback Toast */}
       {xpFeedback.visible && (
         <Animated.View
-          entering={FadeInDown.duration(300)}
+          entering={FadeInDown.springify().damping(12).stiffness(100)}
           style={{
             position: 'absolute',
             top: 100,

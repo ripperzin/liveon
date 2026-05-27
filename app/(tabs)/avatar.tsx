@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, getAttributeColor, getRarityColor } from '@/constants/Colors';
 import { useAuthStore, useGameStore } from '@/lib/store';
+import RadarChart from '@/components/RadarChart';
 
 export default function AvatarScreen() {
   const { t } = useTranslation();
@@ -145,62 +146,37 @@ export default function AvatarScreen() {
           </View>
         </Animated.View>
 
-        {/* Attributes Grid */}
+        {/* Attributes Radar Chart */}
         <Animated.View
           entering={FadeInDown.delay(200).duration(600)}
-          style={{ marginHorizontal: 24, marginTop: 24 }}
+          style={{ marginHorizontal: 24, marginTop: 24, alignItems: 'center' }}
         >
-          <Text style={{ fontSize: 18, color: Colors.textPrimary, fontWeight: '700', marginBottom: 12 }}>
+          <Text style={{ fontSize: 18, color: Colors.textPrimary, fontWeight: '700', marginBottom: 12, alignSelf: 'flex-start' }}>
             {t('avatar.attributes')}
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {allAttributes.map((attr) => {
-              const userAttr = userAttributes.find(
-                (ua) => ua.attribute?.slug === attr.slug
-              );
-              const value = userAttr?.value || 0;
-              const color = getAttributeColor(attr.slug);
-
-              return (
-                <View
-                  key={attr.slug}
-                  style={{
-                    width: '48%',
-                    backgroundColor: Colors.surface,
-                    borderRadius: 14,
-                    padding: 14,
-                    borderWidth: 1,
-                    borderColor: Colors.surfaceLight,
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <Text style={{ fontSize: 18 }}>{attr.icon}</Text>
-                    <Text style={{ color: Colors.textSecondary, fontSize: 13, fontWeight: '600', flex: 1 }}>
-                      {t(`attributes.${attr.key}`)}
-                    </Text>
-                  </View>
-                  <Text style={{ color, fontSize: 24, fontWeight: '800' }}>{value}</Text>
-                  <View
-                    style={{
-                      height: 4,
-                      backgroundColor: Colors.surfaceLight,
-                      borderRadius: 2,
-                      marginTop: 8,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <View
-                      style={{
-                        height: '100%',
-                        width: `${Math.min((value / 100) * 100, 100)}%`,
-                        backgroundColor: color,
-                        borderRadius: 2,
-                      }}
-                    />
-                  </View>
-                </View>
-              );
-            })}
+          <View
+            style={{
+              backgroundColor: Colors.surface,
+              borderRadius: 24,
+              padding: 16,
+              width: '100%',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: Colors.surfaceLight,
+            }}
+          >
+            <RadarChart
+              data={allAttributes.map((attr) => {
+                const userAttr = userAttributes.find((ua) => ua.attribute?.slug === attr.slug);
+                return {
+                  label: t(`attributes.${attr.key}`).substring(0, 3).toUpperCase(),
+                  value: userAttr?.value || 0,
+                  color: getAttributeColor(attr.slug),
+                  max: 100, // assuming 100 is max for chart scale
+                };
+              })}
+              size={280}
+            />
           </View>
         </Animated.View>
 
