@@ -8,6 +8,14 @@ import { Colors } from '@/constants/Colors';
 import { useAuthStore, useGameStore, type Habit } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 
+const ESSENCES = [
+  { id: 'disciplined', name: 'Disciplinado', icon: '🎯', color: '#3B82F6', visualState: 'focused' },
+  { id: 'creative', name: 'Criativo', icon: '🎨', color: '#8B5CF6', visualState: 'inspired' },
+  { id: 'balanced', name: 'Equilibrado', icon: '⚖️', color: '#10B981', visualState: 'balanced' },
+  { id: 'energetic', name: 'Energético', icon: '⚡', color: '#F59E0B', visualState: 'energetic' },
+  { id: 'wise', name: 'Sábio', icon: '🦉', color: '#F8FAFC', visualState: 'focused' },
+];
+
 export default function OnboardingScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -15,7 +23,7 @@ export default function OnboardingScreen() {
   const { habits, fetchHabits } = useGameStore();
 
   const [step, setStep] = useState(1);
-  const [selectedAvatar, setSelectedAvatar] = useState('🧙');
+  const [selectedEssence, setSelectedEssence] = useState(ESSENCES[0]);
   const [selectedHabits, setSelectedHabits] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -33,10 +41,16 @@ export default function OnboardingScreen() {
     setLoading(true);
 
     try {
-      // 1. Update Profile Avatar
+      // 1. Update Profile Avatar Config
       await supabase
         .from('profiles')
-        .update({ avatar_config: { emoji: selectedAvatar } })
+        .update({ 
+          avatar_config: { 
+            essence: selectedEssence.id,
+            color: selectedEssence.color,
+            defaultVisualState: selectedEssence.visualState
+          } 
+        })
         .eq('id', profile.id);
 
       // 2. Insert User Habits
@@ -73,29 +87,33 @@ export default function OnboardingScreen() {
         {step === 1 && (
           <Animated.View entering={FadeInRight.duration(500)} style={{ flex: 1, justifyContent: 'center' }}>
             <Text style={{ fontSize: 32, fontWeight: '800', color: Colors.textPrimary, marginBottom: 12 }}>
-              {t('onboarding.create_avatar')}
+              Sua Essência Inicial
             </Text>
-            <Text style={{ fontSize: 16, color: Colors.textSecondary, marginBottom: 40 }}>
-              Choose a character to represent your real-life journey.
+            <Text style={{ fontSize: 16, color: Colors.textSecondary, marginBottom: 32 }}>
+              Escolha a energia que guiará seu companheiro virtual no início da sua jornada.
             </Text>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
-              {['🧙', '🧝', '🥷', '🧙‍♀️', '🧚', '🦸', '🧛', '🧟'].map((emoji) => (
+            <View style={{ gap: 12 }}>
+              {ESSENCES.map((essence) => (
                 <Pressable
-                  key={emoji}
-                  onPress={() => setSelectedAvatar(emoji)}
+                  key={essence.id}
+                  onPress={() => setSelectedEssence(essence)}
                   style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 36,
-                    backgroundColor: selectedAvatar === emoji ? Colors.primary : Colors.surface,
-                    justifyContent: 'center',
+                    flexDirection: 'row',
                     alignItems: 'center',
+                    padding: 16,
+                    backgroundColor: selectedEssence.id === essence.id ? essence.color + '20' : Colors.surface,
+                    borderRadius: 16,
                     borderWidth: 2,
-                    borderColor: selectedAvatar === emoji ? Colors.primaryLight : Colors.surfaceLight,
+                    borderColor: selectedEssence.id === essence.id ? essence.color : Colors.surfaceLight,
                   }}
                 >
-                  <Text style={{ fontSize: 32 }}>{emoji}</Text>
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: essence.color + '30', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                    <Text style={{ fontSize: 24 }}>{essence.icon}</Text>
+                  </View>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: Colors.textPrimary }}>
+                    {essence.name}
+                  </Text>
                 </Pressable>
               ))}
             </View>

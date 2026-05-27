@@ -6,12 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { Colors, getAttributeColor, getRarityColor } from '@/constants/Colors';
 import { useAuthStore, useGameStore } from '@/lib/store';
+import { useAvatarState } from '@/lib/avatar';
+import { AvatarRenderer } from '@/components/avatar';
 import RadarChart from '@/components/RadarChart';
 import { useFocusEffect } from 'expo-router';
 
 export default function AvatarScreen() {
   const { t } = useTranslation();
   const { profile } = useAuthStore();
+  const avatarState = useAvatarState(profile?.id);
   const { userAttributes, achievements, loadAllData, shopItems, userInventory, buyItem, equipItem } = useGameStore();
 
   const equippedTitle = userInventory.find(i => i.is_equipped && i.item?.type === 'title')?.item;
@@ -78,23 +81,19 @@ export default function AvatarScreen() {
           }}
         >
           {/* Avatar */}
-          <View
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: Colors.primary + '20',
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderWidth: 4,
-              borderColor: Colors.primary,
-              shadowColor: Colors.primary,
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.5,
-              shadowRadius: 20,
-            }}
-          >
-            <Text style={{ fontSize: 64 }}>🧙</Text>
+          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            {profile && avatarState ? (
+              <AvatarRenderer state={avatarState} size={140} />
+            ) : (
+              <View
+                style={{
+                  width: 140,
+                  height: 140,
+                  borderRadius: 70,
+                  backgroundColor: Colors.surfaceLight,
+                }}
+              />
+            )}
           </View>
 
           {/* Name & Title */}

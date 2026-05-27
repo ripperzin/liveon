@@ -219,7 +219,9 @@ export default function SocialScreen() {
                       alignItems: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 22 }}>🧙</Text>
+                    <Text style={{ fontSize: 20, fontWeight: '700', color: Colors.primary }}>
+                      {(friendship.friend_profile?.display_name || 'F')[0].toUpperCase()}
+                    </Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: Colors.textPrimary, fontSize: 15, fontWeight: '700' }}>
