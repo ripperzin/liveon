@@ -1,67 +1,85 @@
-import { SymbolView } from 'expo-symbols';
-import { Link, Tabs } from 'expo-router';
-import { Platform, Pressable } from 'react-native';
+import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { View, Text, Platform } from 'react-native';
+import { Colors } from '@/constants/Colors';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+function TabIcon({ emoji, label, focused }: { emoji: string; label: string; focused: boolean }) {
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 4 }}>
+      <Text style={{ fontSize: focused ? 26 : 22, marginBottom: 2 }}>{emoji}</Text>
+      <Text
+        style={{
+          fontSize: 10,
+          fontWeight: focused ? '700' : '500',
+          color: focused ? Colors.primary : Colors.textMuted,
+          letterSpacing: 0.2,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { t } = useTranslation();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: Colors.surface,
+          borderTopColor: Colors.surfaceLight,
+          borderTopWidth: 1,
+          height: Platform.OS === 'ios' ? 88 : 68,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 8,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textMuted,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable style={{ marginRight: 15 }}>
-                {({ pressed }) => (
-                  <SymbolView
-                    name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-                    size={25}
-                    tintColor={Colors[colorScheme].text}
-                    style={{ opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="🏠" label={t('tabs.home')} focused={focused} />
           ),
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="habits"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="✅" label={t('tabs.habits')} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="avatar"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="🧑" label={t('tabs.avatar')} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="social"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="👥" label={t('tabs.social')} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="quests"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="⚔️" label={t('tabs.quests')} focused={focused} />
           ),
         }}
       />
