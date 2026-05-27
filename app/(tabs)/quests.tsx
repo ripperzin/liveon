@@ -23,8 +23,8 @@ export default function QuestsScreen() {
   const completedHabits = todayLogs.filter((l) => l.completed).length;
   const dailyProgress = Math.min(completedHabits / totalHabits, 1);
 
-  // Fallback quest data for display (adapted to dynamic progress)
-  const displayQuests = quests.length > 0
+  // Map DB quests or use fallback if none exist
+  const baseQuests = quests.length > 0
     ? quests.filter((q) => q.type === activeTab)
     : [
         {
@@ -36,7 +36,6 @@ export default function QuestsScreen() {
             ? 'Complete 20 hábitos esta semana'
             : 'Mantenha um streak de 7 dias',
           type: activeTab,
-          progress: activeTab === 'daily' ? dailyProgress : 0.3,
           requirements: {},
           rewards: { xp: activeTab === 'daily' ? 50 : activeTab === 'weekly' ? 200 : 500, coins: activeTab === 'daily' ? 20 : activeTab === 'weekly' ? 80 : 200 },
         },
@@ -49,7 +48,6 @@ export default function QuestsScreen() {
             ? 'Acumule 500 XP em uma semana'
             : 'Exercite-se por 30 dias',
           type: activeTab,
-          progress: activeTab === 'daily' ? (completedHabits >= 1 ? 1 : 0) : 0.45,
           requirements: {},
           rewards: { xp: activeTab === 'daily' ? 25 : activeTab === 'weekly' ? 150 : 1000, coins: activeTab === 'daily' ? 10 : activeTab === 'weekly' ? 50 : 500 },
         },
@@ -62,11 +60,28 @@ export default function QuestsScreen() {
             ? 'Mantenha todos os hábitos por 5 dias na semana'
             : 'Alcance o nível 50',
           type: activeTab,
-          progress: activeTab === 'daily' ? (completedHabits >= 1 ? 1 : 0) : 0.1,
           requirements: {},
           rewards: { xp: activeTab === 'daily' ? 30 : activeTab === 'weekly' ? 100 : 5000, coins: activeTab === 'daily' ? 15 : activeTab === 'weekly' ? 40 : 2000 },
         },
       ];
+
+  // Inject dynamic progress and descriptions
+  const displayQuests = baseQuests.map(q => {
+    let progress = 0;
+    let desc = q.description;
+
+    if (q.title === 'Dia Completo') {
+      progress = dailyProgress;
+      desc = `Complete todos os ${userHabits.length || 'seus'} hábitos de hoje`;
+    } else if (q.title === 'Apenas o Começo' || q.title === 'Corpo Ativo' || q.title === 'Hidratação Total') {
+      // Simulate partial completion for other seeded daily quests
+      progress = completedHabits >= 1 ? 1 : 0;
+    } else if (q.type === 'weekly') {
+      progress = 0.3;
+    }
+
+    return { ...q, progress, description: desc };
+  });
 
   const getTypeColor = (type: string) => {
     switch (type) {

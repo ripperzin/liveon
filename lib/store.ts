@@ -201,6 +201,7 @@ interface GameState {
     leveledUp: boolean;
     newLevel?: number;
   } | null>;
+  addUserHabit: (habitId: string) => Promise<void>;
   loadAllData: () => Promise<void>;
 }
 
@@ -346,6 +347,24 @@ export const useGameStore = create<GameState>((set, get) => ({
       leveledUp: newProfile ? newProfile.level > prevLevel : false,
       newLevel: newProfile?.level,
     };
+  },
+
+  addUserHabit: async (habitId: string) => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile) return;
+
+    const { error } = await supabase
+      .from('user_habits')
+      .insert({
+        user_id: profile.id,
+        habit_id: habitId,
+        is_active: true,
+      });
+
+    if (!error) {
+      await get().fetchUserHabits();
+      await get().fetchQuests();
+    }
   },
 
   loadAllData: async () => {

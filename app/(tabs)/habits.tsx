@@ -162,8 +162,7 @@ function HabitCard({ userHabit, todayLog, streak, onCheckIn, index }: HabitCardP
 export default function HabitsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { profile } = useAuthStore();
-  const { habits, userHabits, todayLogs, streaks, completeHabit, fetchTodayLogs, loadAllData } = useGameStore();
+  const { habits, userHabits, todayLogs, streaks, completeHabit, fetchTodayLogs, loadAllData, addUserHabit } = useGameStore();
   const [xpFeedback, setXpFeedback] = useState<{ xp: number; visible: boolean }>({ xp: 0, visible: false });
 
   useFocusEffect(
@@ -172,17 +171,19 @@ export default function HabitsScreen() {
     }, [])
   );
 
-  // Use userHabits if available, otherwise fallback to all habits for display
   const displayHabits: UserHabit[] = userHabits.length > 0
     ? userHabits
-    : habits.map((h) => ({
+    : habits.map(h => ({
         id: h.id,
-        user_id: profile?.id || '',
+        user_id: 'temp',
         habit_id: h.id,
-        custom_goal: null,
         is_active: true,
-        habit: h,
+        created_at: '',
+        updated_at: '',
+        habit: h
       }));
+
+  const availableHabits = habits.filter(h => !userHabits.find(uh => uh.habit_id === h.id));
 
   const handleCheckIn = async (habitId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -312,6 +313,54 @@ export default function HabitsScreen() {
             </Text>
           </Animated.View>
         )}
+
+        {/* Discover New Habits Section */}
+        {availableHabits.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(300).duration(600)} style={{ paddingHorizontal: 24, marginTop: 40, marginBottom: 20 }}>
+            <Text style={{ fontSize: 20, color: Colors.textPrimary, fontWeight: '700', marginBottom: 16 }}>
+              Descubra Novos Hábitos
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+              {availableHabits.map((habit, index) => (
+                <Animated.View key={habit.id} entering={FadeInDown.delay(300 + index * 50).duration(400)}>
+                  <Pressable
+                    onPress={async () => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      await addUserHabit(habit.id);
+                    }}
+                    style={({ pressed }) => ({
+                      backgroundColor: Colors.surface,
+                      borderRadius: 16,
+                      padding: 16,
+                      width: 140,
+                      borderWidth: 1,
+                      borderColor: pressed ? Colors.primary : Colors.surfaceLight,
+                      opacity: pressed ? 0.8 : 1,
+                      alignItems: 'center',
+                    })}
+                  >
+                    <View style={{
+                      width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surfaceDark,
+                      alignItems: 'center', justifyContent: 'center', marginBottom: 12
+                    }}>
+                      <Text style={{ fontSize: 20 }}>{habit.icon}</Text>
+                    </View>
+                    <Text style={{ color: Colors.textPrimary, fontSize: 14, fontWeight: '600', textAlign: 'center', marginBottom: 4 }}>
+                      {habit.name}
+                    </Text>
+                    <Text style={{ color: Colors.textMuted, fontSize: 12, textAlign: 'center' }} numberOfLines={2}>
+                      {habit.description}
+                    </Text>
+                    <View style={{ marginTop: 12, backgroundColor: Colors.primary + '20', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                      <Text style={{ color: Colors.primary, fontSize: 12, fontWeight: '700' }}>Adicionar</Text>
+                    </View>
+                  </Pressable>
+                </Animated.View>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   );
