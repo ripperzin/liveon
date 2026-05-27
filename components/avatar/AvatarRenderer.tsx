@@ -161,10 +161,6 @@ export function AvatarRenderer({ state, size = 160 }: AvatarRendererProps) {
     opacity: auraOpacity.value,
   }));
 
-  const eyeProps = useAnimatedProps(() => ({
-    scaleY: eyeBlink.value,
-  }));
-
   const bodyColor   = STATE_BODY_COLOR[state.visualState];
   const outlineColor = STATE_OUTLINE_COLOR[state.visualState];
   const headR = size * 0.26;
@@ -228,7 +224,7 @@ export function AvatarRenderer({ state, size = 160 }: AvatarRendererProps) {
           cy={cy - headR * 0.1}
           headR={headR}
           visualState={state.visualState}
-          eyeProps={eyeProps}
+          eyeBlink={eyeBlink}
           outlineColor={outlineColor}
         />
 
@@ -255,16 +251,24 @@ type FaceProps = {
   cy: number;
   headR: number;
   visualState: AvatarState['visualState'];
-  eyeProps: any;
+  eyeBlink: Animated.SharedValue<number>;
   outlineColor: string;
 };
 
-function AvatarFace({ cx, cy, headR, visualState, eyeProps, outlineColor }: FaceProps) {
+function AvatarFace({ cx, cy, headR, visualState, eyeBlink, outlineColor }: FaceProps) {
   const eyeY    = cy - headR * 0.15;
   const eyeOffX = headR * 0.35;
   const eyeRx   = headR * 0.14;
-  const eyeRy   = visualState === 'tired' ? headR * 0.08 : headR * 0.16;
+  const baseEyeRy = visualState === 'tired' ? headR * 0.08 : headR * 0.16;
   const eyeColor = outlineColor;
+
+  const leftEyeProps = useAnimatedProps(() => ({
+    ry: Math.max(0.1, baseEyeRy * eyeBlink.value),
+  }));
+
+  const rightEyeProps = useAnimatedProps(() => ({
+    ry: Math.max(0.1, baseEyeRy * eyeBlink.value),
+  }));
 
   // Boca — muda por estado
   const mouthY = cy + headR * 0.38;
@@ -279,12 +283,8 @@ function AvatarFace({ cx, cy, headR, visualState, eyeProps, outlineColor }: Face
   return (
     <G>
       {/* Olhos com blink */}
-      <AnimatedG animatedProps={eyeProps} originX={cx - eyeOffX} originY={eyeY}>
-        <Ellipse cx={cx - eyeOffX} cy={eyeY} rx={eyeRx} ry={eyeRy} fill={eyeColor} />
-      </AnimatedG>
-      <AnimatedG animatedProps={eyeProps} originX={cx + eyeOffX} originY={eyeY}>
-        <Ellipse cx={cx + eyeOffX} cy={eyeY} rx={eyeRx} ry={eyeRy} fill={eyeColor} />
-      </AnimatedG>
+      <AnimatedEllipse cx={cx - eyeOffX} cy={eyeY} rx={eyeRx} fill={eyeColor} animatedProps={leftEyeProps} />
+      <AnimatedEllipse cx={cx + eyeOffX} cy={eyeY} rx={eyeRx} fill={eyeColor} animatedProps={rightEyeProps} />
 
       {/* Brilho dos olhos */}
       {visualState !== 'tired' && (
