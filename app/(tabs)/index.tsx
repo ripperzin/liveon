@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { Colors, getGreeting, getStreakColor, getAttributeColor } from '@/constants/Colors';
 import { HomeAvatar } from '@/components/avatar';
+import { useAuthStore, useGameStore } from '@/lib/store';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
