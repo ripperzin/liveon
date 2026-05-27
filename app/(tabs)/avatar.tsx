@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { Colors, getAttributeColor, getRarityColor } from '@/constants/Colors';
 import { useAuthStore, useGameStore } from '@/lib/store';
 import RadarChart from '@/components/RadarChart';
