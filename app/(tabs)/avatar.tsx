@@ -1,20 +1,23 @@
 import { View, Text, ScrollView } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, getAttributeColor, getRarityColor } from '@/constants/Colors';
 import { useAuthStore, useGameStore } from '@/lib/store';
 import RadarChart from '@/components/RadarChart';
+import { useFocusEffect } from 'expo-router';
 
 export default function AvatarScreen() {
   const { t } = useTranslation();
   const { profile } = useAuthStore();
   const { userAttributes, achievements, loadAllData } = useGameStore();
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadAllData();
+    }, [])
+  );
 
   const allAttributes = [
     { slug: 'vitality', icon: '💧', key: 'vitality' },

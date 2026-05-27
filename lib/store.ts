@@ -289,6 +289,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     const prevLevel = profile.level;
     const today = new Date().toISOString().split('T')[0];
 
+    // Optimistic Update: Assume success immediately
+    const optimisticLog: HabitLog = {
+      id: 'temp-' + Date.now(),
+      user_id: profile.id,
+      habit_id: habitId,
+      log_date: today,
+      value,
+      completed: true,
+      xp_earned: 0,
+      coins_earned: 0,
+      created_at: new Date().toISOString(),
+    };
+
+    set((state) => {
+      // Remove any existing log for today to prevent duplicates
+      const filteredLogs = state.todayLogs.filter(l => l.habit_id !== habitId);
+      return { todayLogs: [...filteredLogs, optimisticLog] };
+    });
+
+    // Database Upsert
     const { data, error } = await supabase
       .from('habit_logs')
       .upsert({
@@ -303,15 +323,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      // Rollback on failure
+      set((state) => ({ todayLogs: state.todayLogs.filter(l => l.id !== optimisticLog.id) }));
+      return null;
+    }
 
     const log = data as HabitLog;
 
-    // Refresh profile to get updated XP/level
+    // Refresh profile to get updated XP/level sequentially
     await useAuthStore.getState().fetchProfile();
     const newProfile = useAuthStore.getState().profile;
 
-    // Refresh today's logs and streaks
+    // Refresh other states securely
     await get().fetchTodayLogs();
     await get().fetchStreaks();
     await get().fetchUserAttributes();

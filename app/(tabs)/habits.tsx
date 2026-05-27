@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -13,7 +13,7 @@ import Animated, {
 import { Colors, getStreakColor, getStreakMultiplier } from '@/constants/Colors';
 import { useAuthStore, useGameStore, type UserHabit, type HabitLog } from '@/lib/store';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 interface HabitCardProps {
   userHabit: UserHabit;
@@ -166,9 +166,11 @@ export default function HabitsScreen() {
   const { habits, userHabits, todayLogs, streaks, completeHabit, fetchTodayLogs, loadAllData } = useGameStore();
   const [xpFeedback, setXpFeedback] = useState<{ xp: number; visible: boolean }>({ xp: 0, visible: false });
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadAllData();
+    }, [])
+  );
 
   // Use userHabits if available, otherwise fallback to all habits for display
   const displayHabits: UserHabit[] = userHabits.length > 0

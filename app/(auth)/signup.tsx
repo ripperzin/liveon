@@ -55,13 +55,27 @@ export default function SignupScreen() {
 
     setLoading(false);
     if (error) {
+      // If error says user already exists, let's just try to log them in!
+      if (error.message.includes('already registered')) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (!signInError) return; // Router will auto-redirect due to auth state change
+      }
       Alert.alert(t('error'), error.message);
     } else {
-      Alert.alert(
-        t('success'),
-        'Account created! Check your email for verification.',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      // Try to login immediately since our DB trigger auto-confirms emails for MVP
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      
+      if (loginError) {
+        Alert.alert(
+          t('success'),
+          'Account created! Please return to Login screen and log in.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      }
+      // If login succeeds, the AuthGate in _layout.tsx will catch the session and redirect automatically.
     }
   };
 

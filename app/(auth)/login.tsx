@@ -155,54 +155,6 @@ export default function LoginScreen() {
             </Pressable>
           </Animated.View>
 
-          {/* Divider */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 16 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: Colors.surfaceLight }} />
-            <Text style={{ color: Colors.textMuted, paddingHorizontal: 16, fontSize: 14 }}>
-              {t('auth.or_continue_with')}
-            </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: Colors.surfaceLight }} />
-          </View>
-
-          {/* Social Buttons */}
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <Pressable
-              onPress={async () => {
-                await supabase.auth.signInWithOAuth({ provider: 'google' });
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: Colors.surface,
-                paddingVertical: 16,
-                borderRadius: 12,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: Colors.surfaceLight,
-              }}
-            >
-              <Text style={{ color: Colors.textPrimary, fontSize: 16, fontWeight: '600' }}>
-                Google
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={async () => {
-                await supabase.auth.signInWithOAuth({ provider: 'apple' });
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: Colors.surface,
-                paddingVertical: 16,
-                borderRadius: 12,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: Colors.surfaceLight,
-              }}
-            >
-              <Text style={{ color: Colors.textPrimary, fontSize: 16, fontWeight: '600' }}>
-                Apple
-              </Text>
-            </Pressable>
-          </View>
         </Animated.View>
 
         {/* Sign Up Link */}

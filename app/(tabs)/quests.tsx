@@ -1,21 +1,29 @@
 import { View, Text, ScrollView, Pressable } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { Colors } from '@/constants/Colors';
-import { useGameStore } from '@/lib/store';
+import { useGameStore, type UserHabit, type HabitLog } from '@/lib/store';
+import { useFocusEffect } from 'expo-router';
 
 export default function QuestsScreen() {
   const { t } = useTranslation();
-  const { quests, loadAllData } = useGameStore();
+  const { quests, loadAllData, userHabits, todayLogs, userAttributes } = useGameStore();
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'special'>('daily');
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadAllData();
+    }, [])
+  );
 
-  // Fallback quest data for display
+  // Dynamic progress calculations
+  const totalHabits = userHabits.length > 0 ? userHabits.length : 1; // avoid division by zero
+  const completedHabits = todayLogs.filter((l) => l.completed).length;
+  const dailyProgress = Math.min(completedHabits / totalHabits, 1);
+
+  // Fallback quest data for display (adapted to dynamic progress)
   const displayQuests = quests.length > 0
     ? quests.filter((q) => q.type === activeTab)
     : [
@@ -23,35 +31,38 @@ export default function QuestsScreen() {
           id: '1',
           title: activeTab === 'daily' ? 'Dia Completo' : activeTab === 'weekly' ? 'Semana Ativa' : 'Desafio Especial',
           description: activeTab === 'daily'
-            ? 'Complete todos os 4 hábitos de hoje'
+            ? `Complete todos os ${userHabits.length || 'seus'} hábitos de hoje`
             : activeTab === 'weekly'
             ? 'Complete 20 hábitos esta semana'
             : 'Mantenha um streak de 7 dias',
           type: activeTab,
+          progress: activeTab === 'daily' ? dailyProgress : 0.3,
           requirements: {},
           rewards: { xp: activeTab === 'daily' ? 50 : activeTab === 'weekly' ? 200 : 500, coins: activeTab === 'daily' ? 20 : activeTab === 'weekly' ? 80 : 200 },
         },
         {
           id: '2',
-          title: activeTab === 'daily' ? 'Hidratação Total' : activeTab === 'weekly' ? 'Leitor Ávido' : 'Maratonista',
+          title: activeTab === 'daily' ? 'Apenas o Começo' : activeTab === 'weekly' ? 'Foco de Mestre' : 'Maratonista',
           description: activeTab === 'daily'
-            ? 'Beba 8 copos de água'
+            ? 'Complete seu primeiro hábito do dia'
             : activeTab === 'weekly'
-            ? 'Leia por 7 dias seguidos'
+            ? 'Acumule 500 XP em uma semana'
             : 'Exercite-se por 30 dias',
           type: activeTab,
+          progress: activeTab === 'daily' ? (completedHabits >= 1 ? 1 : 0) : 0.45,
           requirements: {},
           rewards: { xp: activeTab === 'daily' ? 25 : activeTab === 'weekly' ? 150 : 1000, coins: activeTab === 'daily' ? 10 : activeTab === 'weekly' ? 50 : 500 },
         },
         {
           id: '3',
-          title: activeTab === 'daily' ? 'Corpo Ativo' : activeTab === 'weekly' ? 'Desintoxicação Digital' : 'Lenda Viva',
+          title: activeTab === 'daily' ? 'Atributo em Alta' : activeTab === 'weekly' ? 'Consistência Pura' : 'Lenda Viva',
           description: activeTab === 'daily'
-            ? 'Faça 30 minutos de exercício'
+            ? 'Ganhe XP em qualquer atributo hoje'
             : activeTab === 'weekly'
-            ? '5 horas sem telas esta semana'
+            ? 'Mantenha todos os hábitos por 5 dias na semana'
             : 'Alcance o nível 50',
           type: activeTab,
+          progress: activeTab === 'daily' ? (completedHabits >= 1 ? 1 : 0) : 0.1,
           requirements: {},
           rewards: { xp: activeTab === 'daily' ? 30 : activeTab === 'weekly' ? 100 : 5000, coins: activeTab === 'daily' ? 15 : activeTab === 'weekly' ? 40 : 2000 },
         },
@@ -133,7 +144,7 @@ export default function QuestsScreen() {
           {displayQuests.map((quest, index) => {
             const color = getTypeColor(quest.type);
             const emoji = getTypeEmoji(quest.type);
-            const progress = Math.random(); // Simulated progress
+            const progress = quest.progress || 0;
 
             return (
               <Animated.View
